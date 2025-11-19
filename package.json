@@ -1,0 +1,30 @@
+{
+  "name": "ctms-backend",
+  "version": "1.0.0",
+  "description": "Cricket Tournament Management System - Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "npx nodemon server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.15.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "keywords": [
+    "cricket",
+    "tournament",
+    "management",
+    "sports"
+  ],
+  "author": "Your Name",
+  "license": "ISC"
+}

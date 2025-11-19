@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teams - CTMS</title>
+    <link rel="stylesheet" href="teams.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="nav-brand"><img src="/image.png" alt="">CTMS Teams</div>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="tournaments.html" class="nav-link">Tournaments</a></li>
+                    <li><a href="teams.html" class="nav-link active">Teams</a></li>
+                    <li><a href="matches.html" class="nav-link">Matches</a></li>
+                    <li><a href="statistics.html" class="nav-link">Statistics</a></li>
+                    <li><a href="index.html" class="nav-link" onclick="logout()">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Team Management</h1>
+            <p>Create and manage cricket teams with vibrant style</p>
+            <button class="btn btn-primary" onclick="openCreateTeamModal()">+ Create Team</button>
+        </div>
+
+        <!-- Teams Grid -->
+        <div class="teams-grid" id="teamsContainer">
+            <!-- Team cards will be dynamically inserted here -->
+        </div>
+
+        <!-- Empty State (Initially Hidden) -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <h3>No Teams Yet</h3>
+            <p>Get started by creating your first team!</p>
+            <button class="btn btn-primary" onclick="openCreateTeamModal()">Create Team</button>
+        </div>
+    </div>
+
+    <!-- Create Team Modal -->
+    <div id="createTeamModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Team</h2>
+                <span class="close" onclick="closeCreateTeamModal()">&times;</span>
+            </div>
+            <form class="modal-form" id="teamForm">
+                <div class="form-group">
+                    <label class="form-label">Team Name</label>
+                    <input type="text" class="form-control" id="teamName" placeholder="Enter team name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Team Abbreviation</label>
+                    <input type="text" class="form-control" id="teamAbbr" placeholder="e.g. KK, LQ, IU, PZ" maxlength="4" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Captain Name</label>
+                    <input type="text" class="form-control" id="captainName" placeholder="Enter captain name" required>
+                </div>
+                
+                <!-- Coach Section -->
+                <div class="coach-section">
+                    <h4>Team Coach</h4>
+                    <div class="form-group">
+                        <label class="form-label">Head Coach</label>
+                        <select class="form-control" id="teamCoach">
+                            <option value="">Select Coach</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tournament Section -->
+                <div class="tournament-section">
+                    <h4>Tournament</h4>
+                    <div class="form-group">
+                        <label class="form-label">Select Tournament</label>
+                        <select class="form-control" id="teamTournament" required>
+                            <option value="">Select Tournament</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">City</label>
+                    <input type="text" class="form-control" id="city" placeholder="Enter city" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Home Stadium</label>
+                    <input type="text" class="form-control" id="stadium" placeholder="Enter home stadium" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Matches Played</label>
+                        <input type="number" class="form-control" id="matchesPlayed" min="0" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Matches Won</label>
+                        <input type="number" class="form-control" id="matchesWon" min="0" value="0" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Net Run Rate</label>
+                    <input type="number" class="form-control" id="netRunRate" step="0.001" value="0.000" required>
+                </div>
+                
+                <!-- Players Section in Create Team Form -->
+                <div class="players-section">
+                    <h3 style="margin: 20px 0 15px 0; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 8px;">Team Players</h3>
+                    <div id="createTeamPlayersList">
+                        <!-- Players will be added here dynamically -->
+                    </div>
+                    <button type="button" class="btn btn-outline" onclick="openAddPlayerToNewTeam()" style="margin-top: 10px;">
+                        + Add Player
+                    </button>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeCreateTeamModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Team</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Team Modal -->
+    <div id="editTeamModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Team</h2>
+                <span class="close" onclick="closeEditTeamModal()">&times;</span>
+            </div>
+            <form class="modal-form" id="editTeamForm">
+                <input type="hidden" id="editTeamId">
+                <div class="form-group">
+                    <label class="form-label">Team Name</label>
+                    <input type="text" class="form-control" id="editTeamName" placeholder="Enter team name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Team Abbreviation</label>
+                    <input type="text" class="form-control" id="editTeamAbbr" placeholder="e.g., KK, LQ, IU PZ" maxlength="4" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Captain Name</label>
+                    <input type="text" class="form-control" id="editCaptainName" placeholder="Enter captain name" required>
+                </div>
+                
+                <!-- Coach Section -->
+                <div class="coach-section">
+                    <h4>Team Coach</h4>
+                    <div class="form-group">
+                        <label class="form-label">Head Coach</label>
+                        <select class="form-control" id="editTeamCoach">
+                            <option value="">Select Coach</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tournament Section -->
+                <div class="tournament-section">
+                    <h4>Tournament</h4>
+                    <div class="form-group">
+                        <label class="form-label">Select Tournament</label>
+                        <select class="form-control" id="editTeamTournament" required>
+                            <option value="">Select Tournament</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">City</label>
+                    <input type="text" class="form-control" id="editCity" placeholder="Enter city" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Home Stadium</label>
+                    <input type="text" class="form-control" id="editStadium" placeholder="Enter home stadium" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Matches Played</label>
+                        <input type="number" class="form-control" id="editMatchesPlayed" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Matches Won</label>
+                        <input type="number" class="form-control" id="editMatchesWon" min="0" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Net Run Rate</label>
+                    <input type="number" class="form-control" id="editNetRunRate" step="0.001" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeEditTeamModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Team</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Players Modal -->
+    <div id="playersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Players - <span id="modalTeamName"></span></h2>
+                <span class="close" onclick="closePlayersModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="players-header">
+                    <button class="btn btn-primary" onclick="openAddPlayerModal()">
+                        + Add Player
+                    </button>
+                </div>
+                <div class="players-list" id="playersList">
+                    <!-- Players will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Add Player to New Team Modal -->
+    <div id="addPlayerToNewTeamModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Player to New Team</h2>
+                <span class="close" onclick="closeAddPlayerToNewTeamModal()">&times;</span>
+            </div>
+            <form class="modal-form" id="playerToNewTeamForm">
+                <div class="form-group">
+                    <label class="form-label">Player Name</label>
+                    <input type="text" class="form-control" id="newTeamPlayerName" placeholder="Enter player name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-control" id="newTeamPlayerRole" required>
+                        <option value="Batsman">Batsman</option>
+                        <option value="Bowler">Bowler</option>
+                        <option value="All-rounder">All-rounder</option>
+                        <option value="Wicketkeeper">Wicketkeeper</option>
+                    </select>
+                </div>
+                
+                <!-- Batting Style (for Batsmen, All-rounders, Wicketkeepers) -->
+                <div class="form-group" id="newTeamPlayerBattingStyleGroup" style="display: none;">
+                    <label class="form-label">Batting Style</label>
+                    <select class="form-control" id="newTeamPlayerBattingStyle">
+                        <option value="Right-handed">Right-handed</option>
+                        <option value="Left-handed">Left-handed</option>
+                    </select>
+                </div>
+                
+                <!-- Bowling Style (for Bowlers and All-rounders) -->
+                <div class="form-group" id="newTeamPlayerBowlingStyleGroup" style="display: none;">
+                    <label class="form-label">Bowling Style</label>
+                    <select class="form-control" id="newTeamPlayerBowlingStyle">
+                        <option value="Fast">Fast</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Spin">Spin</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group" id="newTeamPlayerRunsGroup">
+                        <label class="form-label">Runs Scored</label>
+                        <input type="number" class="form-control" id="newTeamPlayerRuns" min="0" value="0">
+                    </div>
+                    <div class="form-group" id="newTeamPlayerWicketsGroup">
+                        <label class="form-label">Wickets Taken</label>
+                        <input type="number" class="form-control" id="newTeamPlayerWickets" min="0" value="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="newTeamPlayerStrikeRateGroup">
+                        <label class="form-label">Strike Rate</label>
+                        <input type="number" class="form-control" id="newTeamPlayerStrikeRate" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="form-group" id="newTeamPlayerEconomyGroup">
+                        <label class="form-label">Economy Rate</label>
+                        <input type="number" class="form-control" id="newTeamPlayerEconomy" step="0.01" min="0" value="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="newTeamPlayerAverageGroup">
+                        <label class="form-label">Batting Average</label>
+                        <input type="number" class="form-control" id="newTeamPlayerAverage" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Matches Played</label>
+                        <input type="number" class="form-control" id="newTeamPlayerMatches" min="0" value="0" required>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeAddPlayerToNewTeamModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Player Modal -->
+    <div id="addPlayerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Player</h2>
+                <span class="close" onclick="closeAddPlayerModal()">&times;</span>
+            </div>
+            <form class="modal-form" id="playerForm">
+                <input type="hidden" id="playerTeamId">
+                <div class="form-group">
+                    <label class="form-label">Player Name</label>
+                    <input type="text" class="form-control" id="playerName" placeholder="Enter player name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-control" id="playerRole" required>
+                        <option value="Batsman">Batsman</option>
+                        <option value="Bowler">Bowler</option>
+                        <option value="All-rounder">All-rounder</option>
+                        <option value="Wicketkeeper">Wicketkeeper</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="playerRunsGroup">
+                        <label class="form-label">Runs Scored</label>
+                        <input type="number" class="form-control" id="playerRuns" min="0" value="0">
+                    </div>
+                    <div class="form-group" id="playerWicketsGroup">
+                        <label class="form-label">Wickets Taken</label>
+                        <input type="number" class="form-control" id="playerWickets" min="0" value="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="playerStrikeRateGroup">
+                        <label class="form-label">Strike Rate</label>
+                        <input type="number" class="form-control" id="playerStrikeRate" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="form-group" id="playerEconomyGroup">
+                        <label class="form-label">Economy Rate</label>
+                        <input type="number" class="form-control" id="playerEconomy" step="0.01" min="0" value="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="playerAverageGroup">
+                        <label class="form-label">Batting Average</label>
+                        <input type="number" class="form-control" id="playerAverage" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Matches Played</label>
+                        <input type="number" class="form-control" id="playerMatches" min="0" value="0" required>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeAddPlayerModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Player Modal -->
+    <div id="editPlayerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Player</h2>
+                <span class="close" onclick="closeEditPlayerModal()">&times;</span>
+            </div>
+            <form class="modal-form" id="editPlayerForm">
+                <input type="hidden" id="editPlayerTeamId">
+                <input type="hidden" id="editPlayerId">
+                <div class="form-group">
+                    <label class="form-label">Player Name</label>
+                    <input type="text" class="form-control" id="editPlayerName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-control" id="editPlayerRole" required>
+                        <option value="Batsman">Batsman</option>
+                        <option value="Bowler">Bowler</option>
+                        <option value="All-rounder">All-rounder</option>
+                        <option value="Wicketkeeper">Wicketkeeper</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="editPlayerRunsGroup">
+                        <label class="form-label">Runs Scored</label>
+                        <input type="number" class="form-control" id="editPlayerRuns" min="0">
+                    </div>
+                    <div class="form-group" id="editPlayerWicketsGroup">
+                        <label class="form-label">Wickets Taken</label>
+                        <input type="number" class="form-control" id="editPlayerWickets" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="editPlayerStrikeRateGroup">
+                        <label class="form-label">Strike Rate</label>
+                        <input type="number" class="form-control" id="editPlayerStrikeRate" step="0.01" min="0">
+                    </div>
+                    <div class="form-group" id="editPlayerEconomyGroup">
+                        <label class="form-label">Economy Rate</label>
+                        <input type="number" class="form-control" id="editPlayerEconomy" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="editPlayerAverageGroup">
+                        <label class="form-label">Batting Average</label>
+                        <input type="number" class="form-control" id="editPlayerAverage" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Matches Played</label>
+                        <input type="number" class="form-control" id="editPlayerMatches" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeEditPlayerModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="teams.js"></script>
+
+</body>
+</html>

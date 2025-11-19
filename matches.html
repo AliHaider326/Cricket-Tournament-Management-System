@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matches - CTMS</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="matches.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="nav-brand">
+                    <img src="/dashboard5.png" alt="CTMS Logo">
+                    CTMS
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="tournaments.html" class="nav-link">Tournaments</a></li>
+                    <li><a href="teams_advanced.html" class="nav-link">Teams</a></li>
+                    <li><a href="matches.html" class="nav-link active">Matches</a></li>
+                    <li><a href="statistics.html" class="nav-link">Statistics</a></li>
+                    <li><a href="index.html" class="nav-link logout-btn" onclick="logout()">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Match Management</h1>
+            <p>Schedule, track, and manage cricket matches with live scoring</p>
+            <button class="btn btn-primary" onclick="openCreateMatchModal()">+ Schedule Match</button>
+        </div>
+
+        <!-- Match Filters -->
+        <div class="match-filters">
+            <div class="filter-group">
+                <label for="tournamentFilter">Tournament:</label>
+                <select id="tournamentFilter" onchange="matchManager.filterMatches()">
+                    <option value="">All Tournaments</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="statusFilter">Status:</label>
+                <select id="statusFilter" onchange="matchManager.filterMatches()">
+                    <option value="">All Status</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="ongoing">Live</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="dateFilter">Date:</label>
+                <input type="date" id="dateFilter" onchange="matchManager.filterMatches()">
+            </div>
+            <button class="btn btn-outline" onclick="matchManager.clearFilters()">Clear Filters</button>
+        </div>
+
+        <!-- Matches Grid -->
+        <div class="matches-grid" id="matchesContainer">
+            <!-- Matches will be loaded here dynamically -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+            <h3>No Matches Found</h3>
+            <p>Schedule your first match to get started!</p>
+            <button class="btn btn-primary" onclick="openCreateMatchModal()">Schedule Match</button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading matches...</p>
+        </div>
+    </div>
+
+    <!-- Create Match Modal -->
+    <div id="createMatchModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>Schedule New Match</h2>
+                <span class="close" onclick="closeCreateMatchModal()">&times;</span>
+            </div>
+            <form class="modal-form" id="matchForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tournament *</label>
+                        <select class="form-control" id="tournamentSelect" required>
+                            <option value="">Select Tournament</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Match Type</label>
+                        <select class="form-control" id="matchType">
+                            <option value="group">Group Stage</option>
+                            <option value="quarterfinal">Quarter Final</option>
+                            <option value="semifinal">Semi Final</option>
+                            <option value="final">Final</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Team 1 *</label>
+                        <select class="form-control" id="team1Select" required>
+                            <option value="">Select Team 1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Team 2 *</label>
+                        <select class="form-control" id="team2Select" required>
+                            <option value="">Select Team 2</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Match Date & Time *</label>
+                        <input type="datetime-local" class="form-control" id="matchDateTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Venue *</label>
+                        <input type="text" class="form-control" id="venue" placeholder="Enter match venue" required>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeCreateMatchModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Schedule Match</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="matches.js"></script>
+</body>
+</html>

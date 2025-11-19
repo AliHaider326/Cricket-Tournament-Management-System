@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - CTMS</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="statistics.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="nav-brand">
+                    <img src="/dashboard5.png" alt="CTMS Logo">
+                    CTMS
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="tournaments.html" class="nav-link">Tournaments</a></li>
+                    <li><a href="teams_advanced.html" class="nav-link">Teams</a></li>
+                    <li><a href="matches.html" class="nav-link">Matches</a></li>
+                    <li><a href="statistics.html" class="nav-link active">Statistics</a></li>
+                    <li><a href="index.html" class="nav-link logout-btn" onclick="logout()">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Advanced Statistics & Analytics</h1>
+            <p>Comprehensive cricket statistics and performance analytics</p>
+        </div>
+
+        <!-- Statistics Tabs -->
+        <div class="stats-tabs">
+            <button class="tab-btn active" onclick="openTab('overview')">Overview</button>
+            <button class="tab-btn" onclick="openTab('players')">Player Stats</button>
+            <button class="tab-btn" onclick="openTab('teams')">Team Stats</button>
+            <button class="tab-btn" onclick="openTab('tournaments')">Tournament Stats</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <h3 id="totalTournaments">0</h3>
+                        <p>Total Tournaments</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <h3 id="totalTeams">0</h3>
+                        <p>Total Teams</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👤</div>
+                    <div class="stat-info">
+                        <h3 id="totalPlayers">0</h3>
+                        <p>Total Players</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-info">
+                        <h3 id="totalMatches">0</h3>
+                        <p>Total Matches</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Tournament Status Distribution</h3>
+                    <div class="chart" id="tournamentChart">
+                        <div class="loading-message">Loading chart...</div>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Match Status Distribution</h3>
+                    <div class="chart" id="matchChart">
+                        <div class="loading-message">Loading chart...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Stats Tab -->
+        <div id="players" class="tab-content">
+            <div class="stats-section">
+                <h2>Top Batsmen</h2>
+                <div class="stats-table-container">
+                    <table class="stats-table" id="topBatsmenTable">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Team</th>
+                                <th>Runs</th>
+                                <th>Average</th>
+                                <th>Strike Rate</th>
+                                <th>100s/50s</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="loading-message">Loading top batsmen...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h2>Top Bowlers</h2>
+                <div class="stats-table-container">
+                    <table class="stats-table" id="topBowlersTable">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Team</th>
+                                <th>Wickets</th>
+                                <th>Average</th>
+                                <th>Economy</th>
+                                <th>5W</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="loading-message">Loading top bowlers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Stats Tab -->
+        <div id="teams" class="tab-content">
+            <div class="stats-section">
+                <h2>Team Performance</h2>
+                <div class="stats-table-container">
+                    <table class="stats-table" id="teamStatsTable">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                <th>Matches</th>
+                                <th>Won</th>
+                                <th>Lost</th>
+                                <th>Win %</th>
+                                <th>NRR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="loading-message">Loading team statistics...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tournament Stats Tab -->
+        <div id="tournaments" class="tab-content">
+            <div class="stats-section">
+                <h2>Tournament Statistics</h2>
+                <div class="stats-table-container">
+                    <table class="stats-table" id="tournamentStatsTable">
+                        <thead>
+                            <tr>
+                                <th>Tournament</th>
+                                <th>Teams</th>
+                                <th>Matches</th>
+                                <th>Start Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="loading-message">Loading tournament statistics...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="statistics.js"></script>
+</body>
+</html>

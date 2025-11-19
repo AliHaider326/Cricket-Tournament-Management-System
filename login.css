@@ -1,0 +1,239 @@
+/* login.css - Enhanced Login Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8)),
+                url('https://www.re-thinkingthefuture.com/wp-content/uploads/2021/05/A4253-10-biggest-cricket-stadiums-around-the-world-IMG-4.jpg?w=999') no-repeat center center fixed;
+    background-size: cover;
+    color: #f2f2f2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.login-box {
+    background: rgba(34, 34, 34, 0.9);
+    border-radius: 15px;
+    box-shadow: 0 0 25px rgba(124, 208, 223, 0.6);
+    padding: 40px;
+    width: 460px;
+    text-align: center;
+}
+
+.logo-section {
+    margin-bottom: 25px;
+}
+
+.logo-section .tagline {
+    font-weight: bold;
+}
+
+.logo {
+    width: 190px;
+    height: 190px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.logo-section h1 {
+    font-size: 1.215rem;
+    margin-bottom: 5px;
+    color: #7CD0DF;
+    font-weight: bold;
+}
+
+.login-form h2 {
+    color: #7CD0DF;
+    margin-bottom: 15px;
+    font-size: 1.115rem;
+    font-weight: bold;
+}
+
+.login-form label {
+    font-weight: bold;
+}
+
+label {
+    display: block;
+    text-align: left;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #333;
+    color: #7CD0DF;
+    font-size: 1em;
+    margin-bottom: 15px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: #7CD0DF;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background-color: #63c2d2;
+}
+
+.switch {
+    font-weight: bold;
+}
+
+.error-message, .success-message {
+    color: #ff6666;
+    margin-top: 10px;
+}
+
+footer {
+    position: fixed;
+    bottom: 10px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #ccc;
+    font-weight: bold;
+}
+
+.switch {
+    font-size: 0.9em;
+    margin-top: 10px;
+}
+
+.switch a {
+    color: #7CD0DF;
+    text-decoration: none;
+}
+
+.switch a:hover {
+    text-decoration: underline;
+}
+
+/* Demo Credentials */
+.demo-credentials {
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+#demoToggle {
+    background: rgba(0, 0, 0, 0.7);
+    color: #7CD0DF;
+    border: 1px solid #7CD0DF;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#demoToggle:hover {
+    background: rgba(124, 208, 223, 0.2);
+}
+
+.demo-info {
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #7CD0DF;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 10px;
+    font-size: 0.8em;
+    display: none;
+}
+
+.demo-info h4 {
+    color: #7CD0DF;
+    margin-bottom: 10px;
+    font-size: 1em;
+}
+
+.demo-account {
+    margin: 8px 0;
+    color: #ccc;
+    text-align: left;
+}
+
+.demo-account strong {
+    color: #94d2bd;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .login-box {
+        padding: 30px 25px;
+    }
+
+    .logo {
+        width: 100px;
+        height: 100px;
+    }
+
+    .logo-section h1 {
+        font-size: 1.3em;
+    }
+
+    .demo-credentials {
+        position: relative;
+        top: 0;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-box {
+        padding: 25px 20px;
+    }
+
+    .logo {
+        width: 80px;
+        height: 80px;
+    }
+
+    footer {
+        position: relative;
+        margin-top: 20px;
+    }
+}
+/* Add this to your existing login.css */
+.success-message {
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    margin-top: 15px;
+}
