@@ -272,6 +272,7 @@ class TeamManager {
                 transition: all 0.3s ease;
                 min-width: 300px;
                 border: 3px solid rgba(255,255,255,0.2);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             }
             
             .team-popup.delete-popup {
@@ -287,6 +288,10 @@ class TeamManager {
                 min-width: 350px;
             }
             
+            .team-popup.player-popup {
+                background: linear-gradient(135deg, #2196F3, #1976D2);
+            }
+            
             .team-popup.show {
                 opacity: 1;
                 transform: translate(-50%, -50%) scale(1);
@@ -296,12 +301,15 @@ class TeamManager {
                 margin: 0 0 10px 0;
                 font-size: 1.4rem;
                 font-weight: 600;
+                color: white;
             }
             
             .team-popup p {
                 margin: 0;
                 font-size: 1rem;
                 opacity: 0.9;
+                color: white;
+                line-height: 1.4;
             }
             
             .popup-overlay {
@@ -336,6 +344,7 @@ class TeamManager {
                 cursor: pointer;
                 transition: all 0.3s ease;
                 min-width: 80px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             }
             
             .popup-btn.confirm {
@@ -421,7 +430,7 @@ class TeamManager {
         });
     }
 
-    // Show player popup
+    // Show player popup - FIXED: Now uses consistent styling
     showPlayerPopup(playerName, type = 'create') {
         let overlay = document.getElementById('popup-overlay');
         if (!overlay) {
@@ -435,7 +444,7 @@ class TeamManager {
         if (!popup) {
             popup = document.createElement('div');
             popup.id = 'player-popup';
-            popup.className = 'team-popup';
+            popup.className = 'team-popup player-popup';
             document.body.appendChild(popup);
         }
         
@@ -443,7 +452,7 @@ class TeamManager {
             create: {
                 title: 'Player Added!',
                 message: `"${playerName}" has been successfully added`,
-                className: ''
+                className: 'player-popup'
             },
             delete: {
                 title: 'Player Removed!',
@@ -469,8 +478,12 @@ class TeamManager {
         popup.classList.add('show');
         
         setTimeout(() => {
-            this.hideTeamPopup();
+            this.hidePlayerPopup();
         }, 3000);
+        
+        overlay.addEventListener('click', () => {
+            this.hidePlayerPopup();
+        });
     }
 
     // Show confirmation popup for delete
@@ -507,6 +520,30 @@ class TeamManager {
         overlay.addEventListener('click', () => {
             this.hideTeamPopup();
         });
+    }
+
+    // Hide player popup
+    hidePlayerPopup() {
+        const popup = document.getElementById('player-popup');
+        const overlay = document.getElementById('popup-overlay');
+        
+        if (popup) {
+            popup.classList.remove('show');
+            setTimeout(() => {
+                if (popup.parentNode) {
+                    popup.parentNode.removeChild(popup);
+                }
+            }, 300);
+        }
+        
+        if (overlay) {
+            overlay.classList.remove('show');
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 300);
+        }
     }
 
     // Confirm delete action - FIXED: Now deletes from database too

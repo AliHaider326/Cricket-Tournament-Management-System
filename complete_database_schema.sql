@@ -199,4 +199,90 @@ CREATE INDEX idx_matches_date ON Matches(match_date);
 CREATE INDEX idx_player_stats ON Player_Statistics(player_id);
 CREATE INDEX idx_points_table ON Points_Table(tournament_id, points DESC);
 
-SELECT * FROM TOURNAMENTS;
+-- Add status column to Matches table if it doesn't exist
+ALTER TABLE Matches ADD COLUMN match_status VARCHAR(20) DEFAULT 'scheduled';
+
+SELECT * FROM MATCHES;
+
+-- Live Scores Table
+CREATE TABLE IF NOT EXISTS LiveScores (
+    live_score_id INT AUTO_INCREMENT PRIMARY KEY,
+    match_id INT NOT NULL,
+    innings_number INT NOT NULL DEFAULT 1,
+    batting_team_id INT NOT NULL,
+    bowling_team_id INT NOT NULL,
+    total_runs INT NOT NULL DEFAULT 0,
+    total_wickets INT NOT NULL DEFAULT 0,
+    total_overs INT NOT NULL DEFAULT 0,
+    current_over_balls INT NOT NULL DEFAULT 0,
+    striker_id INT,
+    non_striker_id INT,
+    current_bowler_id INT,
+    match_data JSON,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (match_id) REFERENCES Matches(match_id),
+    FOREIGN KEY (batting_team_id) REFERENCES Teams(team_id),
+    FOREIGN KEY (bowling_team_id) REFERENCES Teams(team_id),
+    FOREIGN KEY (striker_id) REFERENCES Players(player_id),
+    FOREIGN KEY (non_striker_id) REFERENCES Players(player_id),
+    FOREIGN KEY (current_bowler_id) REFERENCES Players(player_id)
+);
+
+-- Ball-by-Ball Table
+CREATE TABLE IF NOT EXISTS BallByBall (
+    ball_id INT AUTO_INCREMENT PRIMARY KEY,
+    match_id INT NOT NULL,
+    innings_number INT NOT NULL,
+    over_number INT NOT NULL,
+    ball_number INT NOT NULL,
+    runs INT NOT NULL DEFAULT 0,
+    is_extra BOOLEAN DEFAULT FALSE,
+    extra_type ENUM('wide', 'noball', 'bye', 'legbye'),
+    is_wicket BOOLEAN DEFAULT FALSE,
+    wicket_type ENUM('bowled', 'catch', 'lbw', 'runout', 'stumped'),
+    batsman_id INT,
+    bowler_id INT,
+    fielder_id INT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (match_id) REFERENCES Matches(match_id),
+    FOREIGN KEY (batsman_id) REFERENCES Players(player_id),
+    FOREIGN KEY (bowler_id) REFERENCES Players(player_id),
+    FOREIGN KEY (fielder_id) REFERENCES Players(player_id)
+);
+
+-- Batting Scorecard Table
+CREATE TABLE IF NOT EXISTS BattingScorecard (
+    scorecard_id INT AUTO_INCREMENT PRIMARY KEY,
+    match_id INT NOT NULL,
+    player_id INT NOT NULL,
+    innings_number INT NOT NULL,
+    batting_order INT NOT NULL,
+    runs INT NOT NULL DEFAULT 0,
+    balls INT NOT NULL DEFAULT 0,
+    fours INT NOT NULL DEFAULT 0,
+    sixes INT NOT NULL DEFAULT 0,
+    strike_rate DECIMAL(5,2) DEFAULT 0.00,
+    is_out BOOLEAN DEFAULT FALSE,
+    dismissal_type ENUM('bowled', 'catch', 'lbw', 'runout', 'stumped', 'not_out'),
+    dismissal_info TEXT,
+    FOREIGN KEY (match_id) REFERENCES Matches(match_id),
+    FOREIGN KEY (player_id) REFERENCES Players(player_id)
+);
+
+-- Bowling Scorecard Table
+CREATE TABLE IF NOT EXISTS BowlingScorecard (
+    scorecard_id INT AUTO_INCREMENT PRIMARY KEY,
+    match_id INT NOT NULL,
+    player_id INT NOT NULL,
+    innings_number INT NOT NULL,
+    bowling_order INT NOT NULL,
+    overs DECIMAL(3,1) NOT NULL DEFAULT 0,
+    maidens INT NOT NULL DEFAULT 0,
+    runs INT NOT NULL DEFAULT 0,
+    wickets INT NOT NULL DEFAULT 0,
+    economy DECIMAL(5,2) DEFAULT 0.00,
+    wides INT NOT NULL DEFAULT 0,
+    no_balls INT NOT NULL DEFAULT 0,
+    FOREIGN KEY (match_id) REFERENCES Matches(match_id),
+    FOREIGN KEY (player_id) REFERENCES Players(player_id)
+);

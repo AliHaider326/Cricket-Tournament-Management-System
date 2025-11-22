@@ -179,6 +179,382 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
     }
 });
 
+// ---------- MATCH ENDPOINTS ----------
+
+// CREATE MATCH
+app.post('/api/matches', authMiddleware, async (req, res) => {
+    console.log('🏏 Creating match:', req.body);
+    
+    try {
+        const { team1, team2, matchDate, venue, matchType } = req.body;
+        
+        // Validation
+        if (!team1 || !team2 || !matchDate || !venue || !matchType) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        console.log('🔍 Checking teams:', team1, team2);
+
+        // Check if teams exist
+        const [teams] = await pool.query(
+            'SELECT team_id, team_name FROM Teams WHERE team_name IN (?, ?)',
+            [team1, team2]
+        );
+
+        console.log('🔍 Found teams:', teams);
+
+        if (teams.length !== 2) {
+            return res.status(404).json({ error: 'One or both teams not found' });
+        }
+
+        const team1Data = teams.find(t => t.team_name === team1);
+        const team2Data = teams.find(t => t.team_name === team2);
+
+        if (!team1Data || !team2Data) {
+            return res.status(404).json({ error: 'One or both teams not found' });
+        }
+
+        console.log('🔍 Team IDs:', team1Data.team_id, team2Data.team_id);
+
+        // First, let's check what columns exist in the Matches table
+        try {
+            const [columns] = await pool.query(`
+                SELECT COLUMN_NAME 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME = 'Matches' 
+                AND TABLE_SCHEMA = ?
+            `, [process.env.DB_NAME || 'ctms_complete']);
+            
+            console.log('🔍 Available columns in Matches table:', columns.map(c => c.COLUMN_NAME));
+            
+            // Insert match - dynamically build query based on available columns
+            const availableColumns = columns.map(c => c.COLUMN_NAME);
+            
+            if (availableColumns.includes('match_status')) {
+                // If match_status column exists
+                const [result] = await pool.query(
+                    `INSERT INTO Matches 
+                    (team1_id, team2_id, match_date, venue, match_type, match_status) 
+                    VALUES (?, ?, ?, ?, ?, ?)`,
+                    [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, 'scheduled']
+                );
+                console.log('✅ Match created with match_status column');
+            } else if (availableColumns.includes('status')) {
+                // If status column exists
+                const [result] = await pool.query(
+                    `INSERT INTO Matches 
+                    (team1_id, team2_id, match_date, venue, match_type, status) 
+                    VALUES (?, ?, ?, ?, ?, ?)`,
+                    [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, 'scheduled']
+                );
+                console.log('✅ Match created with status column');
+            } else {
+                // If neither status column exists, use basic columns
+                const [result] = await pool.query(
+                    `INSERT INTO Matches 
+                    (team1_id, team2_id, match_date, venue, match_type) 
+                    VALUES (?, ?, ?, ?, ?)`,
+                    [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType]
+                );
+                console.log('✅ Match created with basic columns');
+            }
+
+        } catch (tableErr) {
+            console.error('❌ Error checking table structure:', tableErr);
+            
+            // Fallback: Try basic insert without status
+            const [result] = await pool.query(
+                `INSERT INTO Matches 
+                (team1_id, team2_id, match_date, venue, match_type) 
+                VALUES (?, ?, ?, ?, ?)`,
+                [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType]
+            );
+            console.log('✅ Match created with fallback query');
+        }
+
+        console.log('✅ Match created successfully');
+        
+        res.status(201).json({ 
+            success: true, 
+            message: 'Match scheduled successfully',
+            matchData: {
+                team1,
+                team2,
+                matchDate,
+                venue,
+                matchType
+            }
+        });
+        
+    } catch (err) {
+        console.error('❌ Error creating match:', err);
+        console.error('❌ Error details:', err.message);
+        console.error('❌ Error code:', err.code);
+        
+        if (err.code === 'ER_NO_SUCH_TABLE') {
+            return res.status(500).json({ error: 'Matches table does not exist. Please run the SQL setup script.' });
+        }
+        
+        if (err.code === 'ER_TRUNCATED_WRONG_VALUE') {
+            return res.status(400).json({ error: 'Invalid date format. Please use YYYY-MM-DD HH:MM:SS format.' });
+        }
+        
+        res.status(500).json({ error: 'Failed to schedule match: ' + err.message });
+    }
+});
+
+// GET ALL MATCHES
+app.get('/api/matches', authMiddleware, async (req, res) => {
+    console.log('🏏 Fetching matches...');
+    
+    try {
+        // Try different column names for status
+        let matches;
+        
+        try {
+            // First try with match_status
+            [matches] = await pool.query(`
+                SELECT 
+                    m.*,
+                    t1.team_name as team1_name,
+                    t2.team_name as team2_name
+                FROM Matches m
+                LEFT JOIN Teams t1 ON m.team1_id = t1.team_id
+                LEFT JOIN Teams t2 ON m.team2_id = t2.team_id
+                ORDER BY m.match_date DESC
+            `);
+        } catch (err) {
+            if (err.code === 'ER_BAD_FIELD_ERROR') {
+                // If match_status doesn't exist, try without it
+                console.log('⚠️ match_status column not found, fetching without status');
+                [matches] = await pool.query(`
+                    SELECT 
+                        m.match_id,
+                        m.team1_id,
+                        m.team2_id,
+                        m.match_date,
+                        m.venue,
+                        m.match_type,
+                        t1.team_name as team1_name,
+                        t2.team_name as team2_name
+                    FROM Matches m
+                    LEFT JOIN Teams t1 ON m.team1_id = t1.team_id
+                    LEFT JOIN Teams t2 ON m.team2_id = t2.team_id
+                    ORDER BY m.match_date DESC
+                `);
+            } else {
+                throw err;
+            }
+        }
+        
+        // Add default status if not present
+        matches = matches.map(match => ({
+            ...match,
+            match_status: match.match_status || match.status || 'scheduled'
+        }));
+        
+        console.log(`✅ Found ${matches.length} matches`);
+        res.json(matches);
+        
+    } catch (err) {
+        console.error('❌ Error fetching matches:', err);
+        
+        // If table doesn't exist, return empty array instead of error
+        if (err.code === 'ER_NO_SUCH_TABLE') {
+            console.log('Matches table does not exist, returning empty array');
+            return res.json([]);
+        }
+        
+        res.status(500).json({ error: 'Failed to fetch matches' });
+    }
+});
+
+// GET MATCH BY ID
+app.get('/api/matches/:id', authMiddleware, async (req, res) => {
+    try {
+        let matches;
+        
+        try {
+            [matches] = await pool.query(`
+                SELECT 
+                    m.*,
+                    t1.team_name as team1_name,
+                    t2.team_name as team2_name
+                FROM Matches m
+                LEFT JOIN Teams t1 ON m.team1_id = t1.team_id
+                LEFT JOIN Teams t2 ON m.team2_id = t2.team_id
+                WHERE m.match_id = ?
+            `, [req.params.id]);
+        } catch (err) {
+            if (err.code === 'ER_BAD_FIELD_ERROR') {
+                // If columns don't exist, try basic query
+                [matches] = await pool.query(`
+                    SELECT 
+                        m.match_id,
+                        m.team1_id,
+                        m.team2_id,
+                        m.match_date,
+                        m.venue,
+                        m.match_type,
+                        t1.team_name as team1_name,
+                        t2.team_name as team2_name
+                    FROM Matches m
+                    LEFT JOIN Teams t1 ON m.team1_id = t1.team_id
+                    LEFT JOIN Teams t2 ON m.team2_id = t2.team_id
+                    WHERE m.match_id = ?
+                `, [req.params.id]);
+            } else {
+                throw err;
+            }
+        }
+        
+        if (matches.length === 0) {
+            return res.status(404).json({ error: 'Match not found' });
+        }
+        
+        // Add default status if not present
+        const match = {
+            ...matches[0],
+            match_status: matches[0].match_status || matches[0].status || 'scheduled'
+        };
+        
+        res.json(match);
+        
+    } catch (err) {
+        console.error('❌ Error fetching match:', err);
+        res.status(500).json({ error: 'Failed to fetch match' });
+    }
+});
+
+// UPDATE MATCH
+app.put('/api/matches/:id', authMiddleware, async (req, res) => {
+    console.log('🏏 Updating match:', req.params.id);
+    
+    try {
+        const { team1, team2, matchDate, venue, matchType, status } = req.body;
+        
+        // Validation
+        if (!team1 || !team2 || !matchDate || !venue || !matchType) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        // Check if match exists
+        const [existing] = await pool.query(
+            'SELECT * FROM Matches WHERE match_id = ?',
+            [req.params.id]
+        );
+        
+        if (existing.length === 0) {
+            return res.status(404).json({ error: 'Match not found' });
+        }
+
+        // Check if teams exist
+        const [teams] = await pool.query(
+            'SELECT team_id, team_name FROM Teams WHERE team_name IN (?, ?)',
+            [team1, team2]
+        );
+
+        if (teams.length !== 2) {
+            return res.status(404).json({ error: 'One or both teams not found' });
+        }
+
+        const team1Data = teams.find(t => t.team_name === team1);
+        const team2Data = teams.find(t => t.team_name === team2);
+
+        // Update match - try different approaches for status column
+        try {
+            // First try with match_status
+            await pool.query(
+                `UPDATE Matches 
+                SET team1_id = ?, team2_id = ?, match_date = ?, venue = ?, match_type = ?, match_status = ?
+                WHERE match_id = ?`,
+                [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, status || 'scheduled', req.params.id]
+            );
+        } catch (err) {
+            if (err.code === 'ER_BAD_FIELD_ERROR') {
+                // If match_status doesn't exist, try with status
+                try {
+                    await pool.query(
+                        `UPDATE Matches 
+                        SET team1_id = ?, team2_id = ?, match_date = ?, venue = ?, match_type = ?, status = ?
+                        WHERE match_id = ?`,
+                        [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, status || 'scheduled', req.params.id]
+                    );
+                } catch (err2) {
+                    if (err2.code === 'ER_BAD_FIELD_ERROR') {
+                        // If neither status column exists, update without status
+                        await pool.query(
+                            `UPDATE Matches 
+                            SET team1_id = ?, team2_id = ?, match_date = ?, venue = ?, match_type = ?
+                            WHERE match_id = ?`,
+                            [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, req.params.id]
+                        );
+                    } else {
+                        throw err2;
+                    }
+                }
+            } else {
+                throw err;
+            }
+        }
+
+        // Fetch updated match
+        const [updatedMatches] = await pool.query(`
+            SELECT 
+                m.*,
+                t1.team_name as team1_name,
+                t2.team_name as team2_name
+            FROM Matches m
+            LEFT JOIN Teams t1 ON m.team1_id = t1.team_id
+            LEFT JOIN Teams t2 ON m.team2_id = t2.team_id
+            WHERE m.match_id = ?
+        `, [req.params.id]);
+
+        if (updatedMatches.length === 0) {
+            return res.status(404).json({ error: 'Match not found after update' });
+        }
+
+        // Add default status if not present
+        const updatedMatch = {
+            ...updatedMatches[0],
+            match_status: updatedMatches[0].match_status || updatedMatches[0].status || 'scheduled'
+        };
+
+        console.log('✅ Match updated successfully');
+        res.json(updatedMatch);
+        
+    } catch (err) {
+        console.error('❌ Error updating match:', err);
+        res.status(500).json({ error: 'Failed to update match' });
+    }
+});
+
+// DELETE MATCH
+app.delete('/api/matches/:id', authMiddleware, async (req, res) => {
+    console.log('🏏 Deleting match:', req.params.id);
+    
+    try {
+        // Check if match exists
+        const [existing] = await pool.query(
+            'SELECT * FROM Matches WHERE match_id = ?',
+            [req.params.id]
+        );
+        
+        if (existing.length === 0) {
+            return res.status(404).json({ error: 'Match not found' });
+        }
+
+        await pool.query('DELETE FROM Matches WHERE match_id = ?', [req.params.id]);
+
+        console.log('✅ Match deleted successfully');
+        res.json({ message: 'Match deleted successfully' });
+        
+    } catch (err) {
+        console.error('❌ Error deleting match:', err);
+        res.status(500).json({ error: 'Failed to delete match' });
+    }
+});
+
 // ---------- TOURNAMENT ENDPOINTS ----------
 
 // GET ALL TOURNAMENTS
@@ -297,7 +673,7 @@ app.put('/api/tournaments/:id', authMiddleware, async (req, res) => {
 
         await pool.query(
             `UPDATE Tournaments 
-            SET tournament_name = ?, start_date = ?, end_date = ?, venue = ?, format = ?, status = ?, updated_at = NOW() 
+            SET tournament_name = ?, start_date = ?, end_date = ?, venue = ?, format = ?, status = ?
             WHERE tournament_id = ?`,
             [tournament_name, start_date, end_date, venue, format, status, req.params.id]
         );
@@ -398,7 +774,7 @@ app.post('/api/coaches', authMiddleware, async (req, res) => {
     }
 });
 
-// ---------- TEAM ENDPOINTS (FIXED - removed created_by references) ----------
+// ---------- TEAM ENDPOINTS (FIXED - removed updated_at references) ----------
 
 // GET ALL TEAMS WITH DETAILS
 app.get('/api/teams', authMiddleware, async (req, res) => {
@@ -627,7 +1003,7 @@ app.post('/api/teams', authMiddleware, async (req, res) => {
     }
 });
 
-// UPDATE TEAM WITH PLAYERS (FIXED - removed created_by)
+// UPDATE TEAM WITH PLAYERS (FIXED - removed updated_at)
 app.put('/api/teams/:id', authMiddleware, async (req, res) => {
     const connection = await pool.getConnection();
     
@@ -665,11 +1041,11 @@ app.put('/api/teams/:id', authMiddleware, async (req, res) => {
 
         const currentTournamentId = existing[0].tournament_id;
 
-        // Update team (removed created_by)
+        // Update team (FIXED: Removed updated_at)
         await connection.query(
             `UPDATE Teams 
             SET team_name = ?, team_abbreviation = ?, city = ?, home_ground = ?, 
-                established_year = ?, coach_id = ?, tournament_id = ?, updated_at = NOW() 
+                established_year = ?, coach_id = ?, tournament_id = ?
             WHERE team_id = ?`,
             [team_name, team_abbreviation, city, home_ground, established_year, coach_id, tournament_id, teamId]
         );
@@ -949,7 +1325,7 @@ app.put('/api/players/:id', authMiddleware, async (req, res) => {
         await pool.query(
             `UPDATE Players 
             SET player_name = ?, date_of_birth = ?, nationality = ?, batting_style = ?, bowling_style = ?, 
-                role = ?, team_id = ?, is_captain = ?, updated_at = NOW() 
+                role = ?, team_id = ?, is_captain = ?
             WHERE player_id = ?`,
             [player_name, date_of_birth || null, nationality || '', finalBattingStyle, finalBowlingStyle, role, team_id, is_captain, req.params.id]
         );
@@ -1040,6 +1416,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`👥 Team endpoints available at: http://localhost:${PORT}/api/teams`);
     console.log(`👨‍🏫 Coach endpoints available at: http://localhost:${PORT}/api/coaches`);
     console.log(`🏃 Player endpoints available at: http://localhost:${PORT}/api/players`);
+    console.log(`🏏 Match endpoints available at: http://localhost:${PORT}/api/matches`);
 });
 
 module.exports = app;
