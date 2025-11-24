@@ -152,13 +152,15 @@ function startTossProcess() {
     showTossCallModal();
 }
 
-// Show toss call modal with improved spacing
+// Show toss call modal - FIXED CENTERING
 function showTossCallModal() {
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 500px; margin: 0;">
             <div class="modal-header">
                 <h2>🧢 Match Toss</h2>
             </div>
@@ -494,7 +496,8 @@ function startInnings() {
         runs: 0,
         wickets: 0,
         balls: 0,
-        bowling_style: bowler.bowling_style
+        bowling_style: bowler.bowling_style,
+        hasTakenHatTrick: false
     };
     
     matchData.isMatchStarted = true;
@@ -522,13 +525,18 @@ function startInnings() {
     });
 }
 
-// Add ball-by-ball record
+// Add ball-by-ball record - FIXED FIRST OVER RECORDING
 function addBallByBall(ballData) {
     const currentTeam = matchData.currentInnings === 1 ? matchData.team1 : matchData.team2;
     const striker = matchData.batsmen.find(b => b.isOnStrike && !b.isOut);
+    
+    // FIXED: Calculate proper over and ball numbers
+    const overNumber = currentTeam.overs;
+    const ballNumber = currentTeam.balls;
+    
     const ballRecord = {
-        over: currentTeam.overs,
-        ball: currentTeam.balls,
+        over: overNumber,
+        ball: ballNumber,
         bowler: matchData.bowler.name,
         batsman: striker ? striker.name : 'New Batsman',
         runs: ballData.runs || 0,
@@ -536,7 +544,8 @@ function addBallByBall(ballData) {
         wicket: ballData.wicket || false,
         description: ballData.description || '',
         score: `${currentTeam.score}/${currentTeam.wickets}`,
-        isExtra: ballData.isExtra || false
+        isExtra: ballData.isExtra || false,
+        timestamp: new Date().toLocaleTimeString()
     };
     
     matchData.ballByBall.unshift(ballRecord);
@@ -817,7 +826,7 @@ function showCricHeroesBoundaryAnimation(runs) {
     }, 2500);
 }
 
-// Enhanced add extras function with proper ball counting
+// Enhanced add extras function with proper ball counting - FIXED FREE HIT COUNTING
 function addExtra(extraType) {
     if (matchData.matchCompleted) {
         alert('Match is already completed!');
@@ -862,8 +871,8 @@ function addExtra(extraType) {
     // Update team score
     currentTeam.score += extraRuns;
     
-    // Update balls count only for bye and leg bye
-    if (countAsBall) {
+    // Update balls count only for bye and leg bye - FIXED: Free hit balls are counted
+    if (countAsBall || matchData.isFreeHit) {
         currentTeam.balls++;
         matchData.bowler.balls++;
     }
@@ -873,9 +882,9 @@ function addExtra(extraType) {
         matchData.bowler.runs += extraRuns;
     }
     
-    // Add to current over (only count as a ball for bye/leg bye)
-    if (countAsBall) {
-        matchData.currentOver.push({ type: extraType });
+    // Add to current over (count as a ball for bye/leg bye AND free hit deliveries) - FIXED
+    if (countAsBall || matchData.isFreeHit) {
+        matchData.currentOver.push({ type: extraType, isFreeHit: matchData.isFreeHit });
     }
     
     // Add commentary based on extra type
@@ -916,15 +925,15 @@ function addExtra(extraType) {
         return;
     }
     
-    // Check if over is completed (only for bye/leg bye which count as balls)
-    if (countAsBall && matchData.currentOver.length === 6) {
+    // Check if over is completed (for bye/leg bye and free hit deliveries which count as balls) - FIXED
+    if ((countAsBall || matchData.isFreeHit) && matchData.currentOver.length === 6) {
         setTimeout(() => {
             endOver();
         }, 1000);
     }
 }
 
-// Enhanced take wicket function with proper batsman handling and strikethrough
+// Enhanced take wicket function with hat-trick detection - FIXED proper hat-trick logic
 function takeWicket() {
     if (matchData.matchCompleted) {
         alert('Match is already completed!');
@@ -961,11 +970,33 @@ function takeWicket() {
     matchData.bowler.wickets++;
     matchData.bowler.balls++;
     
+    // Check for hat-trick - FIXED: Proper cricket hat-trick logic
+    // Get last 2 balls from ballByBall (not current over) to check for consecutive wickets
+    const recentBalls = matchData.ballByBall.slice(0, 2); // Get last 2 balls
+    
+    // Check if last 2 balls were wickets by the same bowler
+    const lastTwoWereWickets = recentBalls.length === 2 && 
+                               recentBalls[0].wicket && 
+                               recentBalls[1].wicket &&
+                               recentBalls[0].bowler === matchData.bowler.name &&
+                               recentBalls[1].bowler === matchData.bowler.name;
+    
+    const isHatTrick = lastTwoWereWickets;
+    
     // Add to current over
     matchData.currentOver.push({ type: 'wicket' });
     
     // Add commentary
-    const commentary = `WICKET! ${matchData.bowler.name} gets ${outBatsmanName} out! ${currentTeam.name} are ${currentTeam.score}/${currentTeam.wickets}`;
+    let commentary = `WICKET! ${matchData.bowler.name} gets ${outBatsmanName} out! ${currentTeam.name} are ${currentTeam.score}/${currentTeam.wickets}`;
+    
+    if (isHatTrick) {
+        commentary = `HAT-TRICK! 🎩 ${matchData.bowler.name} takes a hat-trick! ${outBatsmanName} is the third victim!`;
+        showHatTrickAnimation();
+        
+        // FIXED: Add hat-trick achievement to prevent multiple animations
+        matchData.bowler.hasTakenHatTrick = true;
+    }
+    
     addCommentary(commentary);
     addBallByBall({
         wicket: true,
@@ -992,6 +1023,96 @@ function takeWicket() {
         }, 1000);
     }
 }
+
+// Hat-trick animation function
+function showHatTrickAnimation() {
+    const animation = document.createElement('div');
+    animation.className = 'hat-trick-animation';
+    animation.innerHTML = `
+        <div class="hat-trick-content">
+            <div class="hat-icon">🎩</div>
+            <div class="hat-trick-text">HAT-TRICK!</div>
+            <div class="bowler-name">${matchData.bowler.name}</div>
+        </div>
+    `;
+    
+    document.body.appendChild(animation);
+    
+    // Remove animation after it completes
+    setTimeout(() => {
+        animation.remove();
+    }, 3000);
+}
+
+// Add CSS for hat-trick animation
+const hatTrickCSS = `
+.hat-trick-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: hatTrickFadeIn 0.5s ease;
+}
+
+.hat-trick-content {
+    text-align: center;
+    color: white;
+    animation: hatTrickZoom 1s ease-in-out;
+}
+
+.hat-icon {
+    font-size: 8rem;
+    margin-bottom: 20px;
+    animation: hatBounce 1s ease-in-out infinite;
+}
+
+.hat-trick-text {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #00ff00;
+    text-shadow: 0 0 20px #00ff00;
+    margin-bottom: 10px;
+    animation: textGlow 1.5s ease-in-out infinite;
+}
+
+.bowler-name {
+    font-size: 1.2rem;
+    color: orange;
+}
+
+@keyframes hatTrickFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes hatTrickZoom {
+    0% { transform: scale(0.1) rotate(-180deg); }
+    50% { transform: scale(1.2) rotate(0deg); }
+    70% { transform: scale(0.9) rotate(0deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes hatBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+@keyframes textGlow {
+    0%, 100% { text-shadow: 0 0 20px #00ff00; }
+    50% { text-shadow: 0 0 30px #00ff00, 0 0 40px #00ff00; }
+}
+`;
+
+// Inject hat-trick CSS
+const hatTrickStyle = document.createElement('style');
+hatTrickStyle.textContent = hatTrickCSS;
+document.head.appendChild(hatTrickStyle);
 
 // Enhanced select new batsman function - FIXED to properly handle batsman replacement
 function selectNewBatsman() {
@@ -1025,7 +1146,7 @@ function selectNewBatsman() {
                         ${availableBatsmen.map(p => `<option value="${p.player_id}">${p.player_name} (${p.role})</option>`).join('')}
                     </select>
                     <div style="margin-top: 10px; font-size: 0.9rem; color: #666;">
-                        ${availableBatsmen.length} batsmen available
+                        ${availableBatsmen.length} batsmen available (excluding dismissed and non-striker)
                     </div>
                 </div>
                 <div class="modal-actions" style="justify-content: center; margin-top: 25px;">
@@ -1037,14 +1158,24 @@ function selectNewBatsman() {
     document.body.appendChild(modal);
 }
 
-// Get available batsmen for new selection - FIXED to properly exclude current batsmen who are NOT out
+// Get available batsmen for new selection - FIXED TO EXCLUDE DISMISSED AND NON-STRIKER BATSMEN
 function getAvailableBatsmenForNewSelection(team) {
     return team.players.filter(player => {
         // Check if player is already in batsmen list
         const existingBatsman = matchData.batsmen.find(b => b.id === player.player_id);
         
-        // Include player only if they are not in the batsmen list OR if they are in the list but are out
-        return !existingBatsman || existingBatsman.isOut;
+        // Include player only if they are NOT in the batsmen list OR if they are in the list but are NOT out AND NOT the non-striker
+        if (!existingBatsman) {
+            return true; // Player hasn't batted yet
+        }
+        
+        if (existingBatsman.isOut) {
+            return false; // Player is dismissed
+        }
+        
+        // Check if player is the non-striker
+        const isNonStriker = !existingBatsman.isOnStrike;
+        return !isNonStriker; // Exclude non-striker
     });
 }
 
@@ -1255,37 +1386,47 @@ function addNewBowler() {
     updateTeamSquads();
 }
 
-// Enhanced end innings function with automatic target setting
+// Enhanced end innings function with proper target calculation and innings ended interface
 function endInnings() {
     const currentInnings = matchData.currentInnings;
     const battingTeam = matchData.team1.isBatting ? matchData.team1 : matchData.team2;
     const bowlingTeam = matchData.team1.isBatting ? matchData.team2 : matchData.team1;
     
     if (currentInnings === 1) {
-        // Set target for second innings
+        // Set target for second innings - FIXED: Target is battingTeam.score + 1
         matchData.target = battingTeam.score + 1;
-        matchData.currentInnings = 2;
         
-        // Swap batting and bowling teams
-        matchData.team1.isBatting = !matchData.team1.isBatting;
-        matchData.team2.isBatting = !matchData.team2.isBatting;
+        // Show innings ended interface
+        showInningsEndInterface(
+            `First Innings Over!`,
+            `${battingTeam.name}: ${battingTeam.score}/${battingTeam.wickets}`,
+            `${bowlingTeam.name} needs ${matchData.target} runs to win`
+        );
         
-        // Reset current over for new innings
-        matchData.currentOver = [];
-        matchData.batsmen = [];
-        matchData.bowler = null;
-        matchData.isFreeHit = false;
-        
-        // Display target prominently
-        addCommentary(`⏸️ INNINGS BREAK! ${bowlingTeam.name} needs ${matchData.target} runs to win.`);
-        
-        // Show target display
-        showTargetDisplay();
-        
-        // Automatically start second innings after delay
+        // After delay, switch to second innings
         setTimeout(() => {
+            // Remove the innings end modal
+            const overlay = document.querySelector('.innings-end-overlay');
+            if (overlay) overlay.remove();
+            
+            // Switch innings
+            matchData.currentInnings = 2;
+            matchData.team1.isBatting = !matchData.team1.isBatting;
+            matchData.team2.isBatting = !matchData.team2.isBatting;
+            
+            // Reset for new innings
+            matchData.currentOver = [];
+            matchData.batsmen = [];
+            matchData.bowler = null;
+            matchData.isFreeHit = false;
+            
+            // Update UI
+            updateScoreboard();
+            
+            // Start second innings team selection
             showTeamSelectionModal();
         }, 3000);
+        
     } else {
         // Match completed - team batting second didn't reach target
         matchData.matchCompleted = true;
@@ -1295,7 +1436,7 @@ function endInnings() {
         
         const resultText = `${matchData.winningTeam} wins by ${margin} runs!`;
         
-        addCommentary(`🎖️ MATCH RESULT: ${resultText}`);
+        // Show match result interface
         showMatchResult(resultText);
         
         // Disable scoring controls
@@ -1303,15 +1444,9 @@ function endInnings() {
             btn.disabled = true;
         });
     }
-    
-    // Update UI
-    updateScoreboard();
-    updateBatsmen();
-    updateBowler();
-    updateOverProgress();
 }
 
-// Complete match when target is achieved
+// Enhanced complete match function with wickets in hand - FIXED DISPLAY
 function completeMatch() {
     if (matchData.matchCompleted) return;
     
@@ -1320,7 +1455,8 @@ function completeMatch() {
     matchData.winningTeam = currentTeam.name;
     const wicketsLeft = 10 - currentTeam.wickets;
     
-    const resultText = `${matchData.winningTeam} wins by ${wicketsLeft} wickets!`;
+    // FIXED: Proper win message with wickets remaining
+    const resultText = `${matchData.winningTeam} wins by ${wicketsLeft} wicket${wicketsLeft !== 1 ? 's' : ''}!`;
     
     addCommentary(`🔦 MATCH RESULT: ${resultText}`);
     showMatchResult(resultText);
@@ -1334,7 +1470,48 @@ function completeMatch() {
     updateScoreboard();
 }
 
-// Manually end innings (button click)
+// NEW FUNCTION: Show innings ended interface similar to toss/batsman selection
+function showInningsEndInterface(title, score, message) {
+    const overlay = document.createElement('div');
+    overlay.className = 'innings-end-overlay';
+    overlay.innerHTML = `
+        <div class="innings-end-modal">
+            <div class="modal-header">
+                <h2>${title}</h2>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 30px;">
+                <div class="score-summary" style="background: rgba(0,0,0,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--primary); margin-bottom: 10px;">
+                        ${score}
+                    </div>
+                    <div style="font-size: 1.2rem; color: #333;">
+                        ${message}
+                    </div>
+                </div>
+                <div class="innings-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.9rem; color: #666;">Overs</div>
+                        <div style="font-size: 1.3rem; font-weight: bold;">${Math.floor(matchData.team1.balls / 6)}.${matchData.team1.balls % 6}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.9rem; color: #666;">Run Rate</div>
+                        <div style="font-size: 1.3rem; font-weight: bold;">
+                            ${(matchData.team1.score / (matchData.team1.overs + matchData.team1.balls / 6)).toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions" style="justify-content: center; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="this.closest('.innings-end-overlay').remove();" style="padding: 12px 30px;">
+                        Continue to Next Innings
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+// Manually end innings (button click) - FIXED
 function manualEndInnings() {
     if (matchData.matchCompleted) {
         alert('Match is already completed!');
@@ -1343,10 +1520,43 @@ function manualEndInnings() {
     
     const currentInnings = matchData.currentInnings;
     const battingTeam = matchData.team1.isBatting ? matchData.team1 : matchData.team2;
+    const bowlingTeam = matchData.team1.isBatting ? matchData.team2 : matchData.team1;
     
     if (currentInnings === 1) {
         if (confirm(`Are you sure you want to end ${battingTeam.name}'s innings? They have scored ${battingTeam.score}/${battingTeam.wickets}`)) {
-            endInnings();
+            // Set target for second innings
+            matchData.target = battingTeam.score + 1;
+            
+            // Show innings ended interface (same as automatic end)
+            showInningsEndInterface(
+                `First Innings Over!`,
+                `${battingTeam.name}: ${battingTeam.score}/${battingTeam.wickets}`,
+                `${bowlingTeam.name} needs ${matchData.target} runs to win`
+            );
+            
+            // After delay, switch to second innings
+            setTimeout(() => {
+                // Remove the innings end modal
+                const overlay = document.querySelector('.innings-end-overlay');
+                if (overlay) overlay.remove();
+                
+                // Switch innings
+                matchData.currentInnings = 2;
+                matchData.team1.isBatting = !matchData.team1.isBatting;
+                matchData.team2.isBatting = !matchData.team2.isBatting;
+                
+                // Reset for new innings
+                matchData.currentOver = [];
+                matchData.batsmen = [];
+                matchData.bowler = null;
+                matchData.isFreeHit = false;
+                
+                // Update UI
+                updateScoreboard();
+                
+                // Start second innings team selection
+                showTeamSelectionModal();
+            }, 3000);
         }
     } else {
         if (confirm(`Are you sure you want to end the match? ${battingTeam.name} needs ${matchData.target - battingTeam.score} more runs to win.`)) {
@@ -1401,60 +1611,79 @@ function showTargetDisplay() {
     document.body.appendChild(modal);
 }
 
-// Show match result
+// Show match result - FIXED TO SHOW PROPER INTERFACE
 function showMatchResult(resultText) {
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px; text-align: center;">
-            <div class="modal-header">
-                <h2>🤝🏻 Match Completed</h2>
+        <div class="modal-content" style="max-width: 500px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="modal-header" style="background: rgba(0,0,0,0.2);">
+                <h2 style="color: white; margin: 0;">🤝🏻 Match Completed</h2>
             </div>
-            <div class="modal-body" style="padding: 30px;">
-                <div style="font-size: 2rem; color: var(--success); font-weight: bold; margin-bottom: 20px;">
+            <div class="modal-body" style="padding: 40px 30px;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🏆</div>
+                <div style="font-size: 2.5rem; color: #FFD700; font-weight: bold; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                     ${matchData.winningTeam}
                 </div>
-                <p style="font-size: 1.5rem; margin-bottom: 20px; color: var(--primary);">
+                <p style="font-size: 1.8rem; margin-bottom: 25px; color: #FFFFFF; font-weight: 600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
                     ${resultText}
                 </p>
-                <div style="background: var(--light); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                    <div style="font-weight: bold; margin-bottom: 10px;">Final Scores:</div>
-                    <div>${matchData.team1.name}: ${matchData.team1.score}/${matchData.team1.wickets}</div>
-                    <div>${matchData.team2.name}: ${matchData.team2.score}/${matchData.team2.wickets}</div>
+                <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 15px; margin-bottom: 25px; backdrop-filter: blur(10px);">
+                    <div style="font-weight: bold; margin-bottom: 15px; font-size: 1.3rem; color: #FFD700;">Final Scores</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 1.2rem;">
+                        <div style="text-align: right; font-weight: 600;">${matchData.team1.name}:</div>
+                        <div style="text-align: left;">${matchData.team1.score}/${matchData.team1.wickets}</div>
+                        <div style="text-align: right; font-weight: 600;">${matchData.team2.name}:</div>
+                        <div style="text-align: left;">${matchData.team2.score}/${matchData.team2.wickets}</div>
+                    </div>
                 </div>
-                <div class="modal-actions" style="justify-content: center; margin-top: 20px;">
-                    <button class="btn btn-primary" onclick="this.closest('.modal').remove();" style="padding: 12px 30px; font-size: 1.1rem;">
-                        Close
+                <div class="modal-actions" style="justify-content: center; margin-top: 25px;">
+                    <button class="btn btn-primary" onclick="this.closest('.modal').remove(); location.reload();" style="padding: 15px 40px; font-size: 1.2rem; background: rgba(255,215,0,0.9); color: #8B6914; border: none; border-radius: 25px; font-weight: bold;">
+                        Start New Match
                     </button>
                 </div>
             </div>
         </div>
     `;
     document.body.appendChild(modal);
+    
+    // FIXED: Remove CRR and Required Run Rate display after match completion
+    setTimeout(() => {
+        const crrElement = document.getElementById('currentRunRate');
+        const reqElement = document.getElementById('requiredRunRate');
+        const ballsElement = document.getElementById('ballsRemaining');
+        
+        if (crrElement) crrElement.textContent = '-';
+        if (reqElement) reqElement.textContent = '-';
+        if (ballsElement) ballsElement.textContent = '-';
+    }, 100);
 }
 
-// Update scoreboard UI with target display
+// Update scoreboard UI with target display - FIXED BATTING TEAM DISPLAY
 function updateScoreboard() {
     const currentInnings = matchData.currentInnings;
-    const currentTeam = currentInnings === 1 ? matchData.team1 : matchData.team2;
+    const battingTeam = matchData.team1.isBatting ? matchData.team1 : matchData.team2;
+    const bowlingTeam = matchData.team1.isBatting ? matchData.team2 : matchData.team1;
     
-    // Update innings title with correct batting team name
+    // Update innings title with correct batting team name - FIXED
     document.getElementById('inningsTitle').textContent = 
-        `${currentTeam.name} - Innings ${currentInnings} ${currentTeam.score}/${currentTeam.wickets}`;
+        `${battingTeam.name} - Innings ${currentInnings} ${battingTeam.score}/${battingTeam.wickets}`;
     
     document.getElementById('scoreDisplay').textContent = 
-        `${currentTeam.score}/${currentTeam.wickets}`;
+        `${battingTeam.score}/${battingTeam.wickets}`;
     
     // Calculate current run rate based on overs.balls format
-    const totalBalls = currentTeam.overs * 6 + currentTeam.balls;
-    const crr = totalBalls > 0 ? (currentTeam.score / totalBalls * 6).toFixed(2) : '0.00';
+    const totalBalls = battingTeam.overs * 6 + battingTeam.balls;
+    const crr = totalBalls > 0 ? (battingTeam.score / totalBalls * 6).toFixed(2) : '0.00';
     document.getElementById('currentRunRate').textContent = crr;
     
     // Calculate required run rate for second innings
     if (currentInnings === 2) {
         const ballsRemaining = 120 - totalBalls; // Assuming 20 overs match
-        const runsNeeded = matchData.target - currentTeam.score;
+        const runsNeeded = matchData.target - battingTeam.score;
         
         document.getElementById('requiredRunRate').textContent = 
             runsNeeded > 0 ? (runsNeeded / ballsRemaining * 6).toFixed(2) : '-';
@@ -1466,7 +1695,7 @@ function updateScoreboard() {
         targetElement.style.display = 'block';
         
         // Check if target is achieved
-        if (currentTeam.score >= matchData.target) {
+        if (battingTeam.score >= matchData.target) {
             completeMatch();
         }
     } else {
@@ -1498,7 +1727,7 @@ function createTargetDisplay() {
     return targetElement;
 }
 
-// Update batsmen UI with strike indicators, bat icons and strikethrough for out batsmen
+// Update batsmen UI with strike indicators - FIXED SYNCHRONIZATION
 function updateBatsmen() {
     // Filter only active batsmen (not out) for display
     const activeBatsmen = matchData.batsmen.filter(b => !b.isOut);
@@ -1517,15 +1746,15 @@ function updateBatsmen() {
         return;
     }
     
-    // Get striker and non-striker from active batsmen
-    const striker = activeBatsmen.find(b => b.isOnStrike) || activeBatsmen[0];
-    const nonStriker = activeBatsmen.find(b => !b.isOnStrike) || (activeBatsmen[1] || activeBatsmen[0]);
+    // Get striker and non-striker from active batsmen - FIXED LOGIC
+    const striker = activeBatsmen.find(b => b.isOnStrike);
+    const nonStriker = activeBatsmen.find(b => !b.isOnStrike);
     
-    // Update batsman 1 (striker)
+    // Update batsman 1 (ALWAYS striker)
     if (striker) {
         document.getElementById('batsman1Name').innerHTML = `
             ${striker.batIcon || '🏏'} ${striker.name}
-            ${striker.isOnStrike ? '<span class="strike-indicator">⚡</span>' : ''}
+            <span class="strike-indicator">⚡</span>
         `;
         document.getElementById('batsman1Runs').textContent = striker.runs;
         document.getElementById('batsman1Balls').textContent = striker.balls;
@@ -1535,11 +1764,10 @@ function updateBatsmen() {
             striker.balls > 0 ? (striker.runs / striker.balls * 100).toFixed(2) : '0.00';
     }
     
-    // Update batsman 2 (non-striker)
-    if (nonStriker && nonStriker !== striker) {
+    // Update batsman 2 (ALWAYS non-striker)
+    if (nonStriker) {
         document.getElementById('batsman2Name').innerHTML = `
             ${nonStriker.batIcon || '🏏'} ${nonStriker.name}
-            ${nonStriker.isOnStrike ? '<span class="strike-indicator">⚡</span>' : ''}
         `;
         document.getElementById('batsman2Runs').textContent = nonStriker.runs;
         document.getElementById('batsman2Balls').textContent = nonStriker.balls;
@@ -1558,19 +1786,30 @@ function updateBatsmen() {
     }
 }
 
-// Update bowler UI
+// Update bowler UI - FIXED BOWLER DISPLAY
 function updateBowler() {
     if (matchData.bowler) {
         document.getElementById('bowlerName').textContent = matchData.bowler.name;
-        document.getElementById('bowlerOvers').textContent = 
-            `${Math.floor(matchData.bowler.balls / 6)}.${matchData.bowler.balls % 6}`;
+        
+        // Calculate overs properly (e.g., 2.3 means 2 overs and 3 balls)
+        const overs = Math.floor(matchData.bowler.balls / 6);
+        const balls = matchData.bowler.balls % 6;
+        document.getElementById('bowlerOvers').textContent = `${overs}.${balls}`;
+        
         document.getElementById('bowlerRuns').textContent = matchData.bowler.runs;
         document.getElementById('bowlerWickets').textContent = matchData.bowler.wickets;
         
-        // Calculate economy rate
-        const overs = matchData.bowler.balls / 6;
-        const econ = overs > 0 ? (matchData.bowler.runs / overs).toFixed(2) : '0.00';
+        // Calculate economy rate properly
+        const totalOvers = overs + (balls / 6);
+        const econ = totalOvers > 0 ? (matchData.bowler.runs / totalOvers).toFixed(2) : '0.00';
         document.getElementById('bowlerEcon').textContent = econ;
+    } else {
+        // Reset bowler display if no bowler is set
+        document.getElementById('bowlerName').textContent = 'No Bowler';
+        document.getElementById('bowlerOvers').textContent = '0.0';
+        document.getElementById('bowlerRuns').textContent = '0';
+        document.getElementById('bowlerWickets').textContent = '0';
+        document.getElementById('bowlerEcon').textContent = '0.00';
     }
 }
 
@@ -2470,7 +2709,6 @@ const strikethroughCSS = `
     border-left-color: #e74c3c !important;
 }
 `;
-
 // Inject strikethrough CSS
 const strikeStyle = document.createElement('style');
 strikeStyle.textContent = strikethroughCSS;

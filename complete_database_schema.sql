@@ -202,7 +202,7 @@ CREATE INDEX idx_points_table ON Points_Table(tournament_id, points DESC);
 -- Add status column to Matches table if it doesn't exist
 ALTER TABLE Matches ADD COLUMN match_status VARCHAR(20) DEFAULT 'scheduled';
 
-SELECT * FROM TEAMS;
+SELECT * FROM USERS;
 
 -- Live Scores Table
 CREATE TABLE IF NOT EXISTS LiveScores (
