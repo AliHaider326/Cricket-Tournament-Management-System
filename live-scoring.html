@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Scoring - CTMS</title>
+    <link rel="stylesheet" href="live-scoring.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="nav-brand">CTMS Live Scoring</div>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="matches.html" class="nav-link">Matches</a></li>
+                    <li><a href="index.html" class="nav-link" onclick="logout()">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Live Header -->
+        <div class="live-header">
+            <div class="match-info">
+                <div class="match-teams" id="matchTeams">Team A vs Team B</div>
+                <div class="match-details">
+                    <span id="matchTournament">Tournament Name</span>
+                    <span id="matchVenue">Venue Name</span>
+                    <span id="matchDate">Date & Time</span>
+                </div>
+            </div>
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                <span>LIVE</span>
+            </div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="scoreboard">
+            <div class="innings-header">
+                <div class="innings-title" id="inningsTitle">Team A - Innings 1</div>
+                <div class="score-display" id="scoreDisplay">0/0</div>
+            </div>
+            <div class="crr-required">
+                <div>CRR: <span id="currentRunRate">0.00</span></div>
+                <div>Required: <span id="requiredRunRate">-</span> in <span id="ballsRemaining">-</span> balls</div>
+            </div>
+        </div>
+
+        <!-- Batsmen Section -->
+        <div class="batsmen-section">
+            <div class="batsman-card">
+                <div class="batsman-header">
+                    <div class="batsman-name" id="batsman1Name">Batsman 1</div>
+                    <div class="strike-indicator" id="batsman1Strike">ON STRIKE</div>
+                </div>
+                <div class="batsman-stats">
+                    <div>
+                        <div class="stat-label">RUNS</div>
+                        <div class="stat-value" id="batsman1Runs">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">BALLS</div>
+                        <div class="stat-value" id="batsman1Balls">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">4s</div>
+                        <div class="stat-value" id="batsman1Fours">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">6s</div>
+                        <div class="stat-value" id="batsman1Sixes">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">SR</div>
+                        <div class="stat-value" id="batsman1StrikeRate">0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="batsman-card">
+                <div class="batsman-header">
+                    <div class="batsman-name" id="batsman2Name">Batsman 2</div>
+                    <div class="strike-indicator" id="batsman2Strike" style="visibility: hidden;">ON STRIKE</div>
+                </div>
+                <div class="batsman-stats">
+                    <div>
+                        <div class="stat-label">RUNS</div>
+                        <div class="stat-value" id="batsman2Runs">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">BALLS</div>
+                        <div class="stat-value" id="batsman2Balls">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">4s</div>
+                        <div class="stat-value" id="batsman2Fours">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">6s</div>
+                        <div class="stat-value" id="batsman2Sixes">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">SR</div>
+                        <div class="stat-value" id="batsman2StrikeRate">0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bowler Section -->
+        <div class="bowler-section">
+            <div class="bowler-header">
+                <div class="bowler-name" id="bowlerName">Current Bowler</div>
+                <div class="bowler-stats">
+                    <div>
+                        <div class="stat-label">OVERS</div>
+                        <div class="stat-value" id="bowlerOvers">0.0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">RUNS</div>
+                        <div class="stat-value" id="bowlerRuns">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">WICKETS</div>
+                        <div class="stat-value" id="bowlerWickets">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">ECON</div>
+                        <div class="stat-value" id="bowlerEcon">0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Over Progress -->
+        <div class="over-progress" id="overProgress">
+            <!-- Balls will be dynamically added here -->
+        </div>
+
+        <!-- Scoring Controls -->
+        <div class="scoring-controls">
+            <div class="runs-section">
+                <div class="section-title">Score Runs</div>
+                <div class="runs-buttons">
+                    <button class="btn btn-run" onclick="scoreRun(0)">0</button>
+                    <button class="btn btn-run" onclick="scoreRun(1)">1</button>
+                    <button class="btn btn-run" onclick="scoreRun(2)">2</button>
+                    <button class="btn btn-run" onclick="scoreRun(3)">3</button>
+                    <button class="btn btn-run" onclick="scoreRun(4)">4</button>
+                    <button class="btn btn-run" onclick="scoreRun(6)">6</button>
+                </div>
+            </div>
+
+            <div class="extras-section">
+                <div class="section-title">Wicket & Extras</div>
+                <div class="extras-buttons">
+                    <button class="btn btn-wicket" onclick="takeWicket()">WICKET</button>
+                    <button class="btn btn-extra" onclick="addExtra('wide')">WIDE</button>
+                    <button class="btn btn-extra" onclick="addExtra('noball')">NO BALL</button>
+                    <button class="btn btn-extra" onclick="addExtra('bye')">BYE</button>
+                    <button class="btn btn-extra" onclick="addExtra('legbye')">LEG BYE</button>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-action" onclick="swapStrike()">Swap Strike</button>
+                <button class="btn btn-action" onclick="undoAction()">UNDO</button>
+                <button class="btn btn-action" onclick="endOver()">END OVER</button>
+                <button class="btn btn-action" onclick="endInnings()">END INNINGS</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="live-scoring.js"></script>
+</body>
+</html>

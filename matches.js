@@ -46,13 +46,8 @@ class MatchManager {
             });
 
             if (!response.ok) {
-                if (response.status === 401) {
-                    localStorage.removeItem('ctms_token');
-                    localStorage.removeItem('ctms_current_user');
-                    window.location.href = 'login.html';
-                    return;
-                }
                 const errorText = await response.text();
+                console.error(`API Error ${response.status}:`, errorText);
                 throw new Error(`API error: ${response.status} - ${errorText}`);
             }
 
@@ -481,6 +476,31 @@ class MatchManager {
         this.renderMatches();
     }
 
+    // Live Scoring Function
+    startLiveScoring(matchId) {
+        const match = this.matches.find(m => m.match_id == matchId);
+        if (!match) {
+            this.showError('Match not found');
+            return;
+        }
+
+        const team1 = this.teams.find(t => t.team_id == match.team1_id);
+        const team2 = this.teams.find(t => t.team_id == match.team2_id);
+        const tournament = this.tournaments.find(t => t.tournament_id == match.tournament_id);
+
+        // Build URL parameters for live scoring
+        const params = new URLSearchParams({
+            matchId: matchId,
+            team1: team1 ? team1.team_name : 'Team 1',
+            team2: team2 ? team2.team_name : 'Team 2',
+            tournament: tournament ? tournament.tournament_name : 'Tournament',
+            venue: match.venue || 'Venue'
+        });
+
+        // Redirect to live scoring page
+        window.location.href = `live-scoring.html?${params.toString()}`;
+    }
+
     clearFilters() {
         document.getElementById('tournamentFilter').value = '';
         document.getElementById('statusFilter').value = '';
@@ -488,48 +508,64 @@ class MatchManager {
         this.filterMatches();
     }
 
-    // Action methods
-    startLiveScoring(matchId) {
-        window.location.href = `live-scoring.html?matchId=${matchId}`;
-    }
-
+    // UPDATED: Improved startMatch function
     async startMatch(matchId) {
-        try {
-            const match = this.matches.find(m => m.match_id == matchId);
-            if (!match) {
-                this.showError('Match not found');
-                return;
-            }
-
-            // Update match status to ongoing
-            await this.apiRequest(`/matches/${matchId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    tournament_id: match.tournament_id,
-                    team1_id: match.team1_id,
-                    team2_id: match.team2_id,
-                    match_date: match.match_date,
-                    venue: match.venue,
-                    match_type: match.match_type,
-                    match_status: 'ongoing'
-                })
-            });
-
-            this.showMessage('Match started! Redirecting to live scoring...', 'success');
-            
-            // Redirect to live scoring after a short delay
-            setTimeout(() => {
-                window.location.href = `live-scoring.html?matchId=${matchId}`;
-            }, 1500);
-            
-            // Reload matches
-            await this.loadMatches();
-            
-        } catch (error) {
-            console.error('Error starting match:', error);
-            this.showError('Failed to start match: ' + error.message);
+    try {
+        const match = this.matches.find(m => m.match_id == matchId);
+        if (!match) {
+            this.showError('Match not found');
+            return;
         }
+
+        // Get team names for the request
+        const team1 = this.teams.find(t => t.team_id == match.team1_id);
+        const team2 = this.teams.find(t => t.team_id == match.team2_id);
+
+        // Format date for MySQL (convert from ISO to MySQL datetime format)
+        const formatDateForMySQL = (dateString) => {
+            if (!dateString) return new Date().toISOString().slice(0, 19).replace('T', ' ');
+            
+            try {
+                const date = new Date(dateString);
+                return date.toISOString().slice(0, 19).replace('T', ' ');
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return new Date().toISOString().slice(0, 19).replace('T', ' ');
+            }
+        };
+
+        // Prepare match data with field names that match the server expectations
+        const matchData = {
+            // Use field names that match the server's PUT endpoint
+            team1: team1 ? team1.team_name : 'Team 1',
+            team2: team2 ? team2.team_name : 'Team 2',
+            matchDate: formatDateForMySQL(match.match_date),
+            venue: match.venue || 'TBD',
+            matchType: match.match_type || 'group',
+            status: 'ongoing'
+        };
+
+        console.log('📤 Sending match update data:', matchData);
+
+        // Update match status to ongoing
+        await this.apiRequest(`/matches/${matchId}`, {
+            method: 'PUT',
+            body: JSON.stringify(matchData)
+        });
+
+        this.showMessage('Match started! Redirecting to live scoring...', 'success');
+        
+        // Use the new startLiveScoring function
+        this.startLiveScoring(matchId);
+        
+        // Reload matches
+        await this.loadMatches();
+        
+    } catch (error) {
+        console.error('Error starting match:', error);
+        this.showError('Failed to start match: ' + error.message);
     }
+}
 
     editMatch(matchId) {
         const match = this.matches.find(m => m.match_id == matchId);

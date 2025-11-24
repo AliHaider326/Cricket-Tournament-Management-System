@@ -426,17 +426,57 @@ app.get('/api/matches/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// UPDATE MATCH
+// UPDATE MATCH - FIXED VERSION with better date handling
 app.put('/api/matches/:id', authMiddleware, async (req, res) => {
     console.log('🏏 Updating match:', req.params.id);
+    console.log('📥 Received data:', req.body);
     
     try {
-        const { team1, team2, matchDate, venue, matchType, status } = req.body;
+        // Accept both field naming conventions
+        const { 
+            team1, team2, matchDate, venue, matchType, status,  // Original names
+            team1_id, team2_id, match_date, match_type, match_status, tournament_id  // New names
+        } = req.body;
         
-        // Validation
-        if (!team1 || !team2 || !matchDate || !venue || !matchType) {
+        // Use the provided values or fall back to defaults
+        const finalTeam1 = team1 || 'Team 1';
+        const finalTeam2 = team2 || 'Team 2';
+        const finalVenue = venue || 'TBD';
+        const finalMatchType = matchType || match_type || 'group';
+        const finalStatus = status || match_status || 'ongoing';
+
+        // Format date for MySQL - handle both ISO and MySQL formats
+        let finalMatchDate;
+        if (matchDate || match_date) {
+            const dateValue = matchDate || match_date;
+            try {
+                // If it's already in MySQL format (YYYY-MM-DD HH:MM:SS), use as is
+                if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateValue)) {
+                    finalMatchDate = dateValue;
+                } else {
+                    // Convert from ISO or other formats to MySQL format
+                    const date = new Date(dateValue);
+                    if (isNaN(date.getTime())) {
+                        throw new Error('Invalid date');
+                    }
+                    finalMatchDate = date.toISOString().slice(0, 19).replace('T', ' ');
+                }
+            } catch (error) {
+                console.log('⚠️ Date formatting error, using current date:', error);
+                finalMatchDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            }
+        } else {
+            finalMatchDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        }
+
+        // Validation - check if we have the minimum required data
+        if (!finalTeam1 || !finalTeam2 || !finalMatchDate || !finalVenue || !finalMatchType) {
+            console.log('❌ Validation failed - missing required fields');
             return res.status(400).json({ error: 'All fields are required' });
         }
+
+        console.log('🔍 Checking teams:', finalTeam1, finalTeam2);
+        console.log('📅 Formatted date:', finalMatchDate);
 
         // Check if match exists
         const [existing] = await pool.query(
@@ -448,18 +488,44 @@ app.put('/api/matches/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Match not found' });
         }
 
-        // Check if teams exist
-        const [teams] = await pool.query(
-            'SELECT team_id, team_name FROM Teams WHERE team_name IN (?, ?)',
-            [team1, team2]
-        );
+        // Check if teams exist - handle both team names and team IDs
+        let team1Data, team2Data;
 
-        if (teams.length !== 2) {
+        if (team1_id && team2_id) {
+            // If team IDs are provided, use them directly
+            const [teams] = await pool.query(
+                'SELECT team_id, team_name FROM Teams WHERE team_id IN (?, ?)',
+                [team1_id, team2_id]
+            );
+            
+            if (teams.length !== 2) {
+                return res.status(404).json({ error: 'One or both teams not found by ID' });
+            }
+            
+            team1Data = teams.find(t => t.team_id == team1_id);
+            team2Data = teams.find(t => t.team_id == team2_id);
+        } else {
+            // If team names are provided, look them up
+            const [teams] = await pool.query(
+                'SELECT team_id, team_name FROM Teams WHERE team_name IN (?, ?)',
+                [finalTeam1, finalTeam2]
+            );
+
+            console.log('🔍 Found teams by name:', teams);
+
+            if (teams.length !== 2) {
+                return res.status(404).json({ error: 'One or both teams not found by name' });
+            }
+
+            team1Data = teams.find(t => t.team_name === finalTeam1);
+            team2Data = teams.find(t => t.team_name === finalTeam2);
+        }
+
+        if (!team1Data || !team2Data) {
             return res.status(404).json({ error: 'One or both teams not found' });
         }
 
-        const team1Data = teams.find(t => t.team_name === team1);
-        const team2Data = teams.find(t => t.team_name === team2);
+        console.log('🔍 Team IDs for update:', team1Data.team_id, team2Data.team_id);
 
         // Update match - try different approaches for status column
         try {
@@ -468,8 +534,9 @@ app.put('/api/matches/:id', authMiddleware, async (req, res) => {
                 `UPDATE Matches 
                 SET team1_id = ?, team2_id = ?, match_date = ?, venue = ?, match_type = ?, match_status = ?
                 WHERE match_id = ?`,
-                [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, status || 'scheduled', req.params.id]
+                [team1Data.team_id, team2Data.team_id, finalMatchDate, finalVenue, finalMatchType, finalStatus, req.params.id]
             );
+            console.log('✅ Match updated with match_status column');
         } catch (err) {
             if (err.code === 'ER_BAD_FIELD_ERROR') {
                 // If match_status doesn't exist, try with status
@@ -478,8 +545,9 @@ app.put('/api/matches/:id', authMiddleware, async (req, res) => {
                         `UPDATE Matches 
                         SET team1_id = ?, team2_id = ?, match_date = ?, venue = ?, match_type = ?, status = ?
                         WHERE match_id = ?`,
-                        [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, status || 'scheduled', req.params.id]
+                        [team1Data.team_id, team2Data.team_id, finalMatchDate, finalVenue, finalMatchType, finalStatus, req.params.id]
                     );
+                    console.log('✅ Match updated with status column');
                 } catch (err2) {
                     if (err2.code === 'ER_BAD_FIELD_ERROR') {
                         // If neither status column exists, update without status
@@ -487,8 +555,9 @@ app.put('/api/matches/:id', authMiddleware, async (req, res) => {
                             `UPDATE Matches 
                             SET team1_id = ?, team2_id = ?, match_date = ?, venue = ?, match_type = ?
                             WHERE match_id = ?`,
-                            [team1Data.team_id, team2Data.team_id, matchDate, venue, matchType, req.params.id]
+                            [team1Data.team_id, team2Data.team_id, finalMatchDate, finalVenue, finalMatchType, req.params.id]
                         );
+                        console.log('✅ Match updated without status column');
                     } else {
                         throw err2;
                     }
@@ -525,7 +594,8 @@ app.put('/api/matches/:id', authMiddleware, async (req, res) => {
         
     } catch (err) {
         console.error('❌ Error updating match:', err);
-        res.status(500).json({ error: 'Failed to update match' });
+        console.error('❌ Error details:', err.message);
+        res.status(500).json({ error: 'Failed to update match: ' + err.message });
     }
 });
 
