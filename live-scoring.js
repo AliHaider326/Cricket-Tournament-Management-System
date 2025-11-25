@@ -1013,7 +1013,8 @@ function takeWicket() {
     // If all wickets are taken, end innings
     if (currentTeam.wickets >= 10) {
         setTimeout(() => {
-            alert(`All out! ${currentTeam.name} scored ${currentTeam.score}/${currentTeam.wickets}`);
+            // FIXED: Show proper message with correct score
+            addCommentary(`All out! ${currentTeam.name} scored ${currentTeam.score}/${currentTeam.wickets}`);
             endInnings();
         }, 1500);
     } else {
@@ -1392,9 +1393,13 @@ function endInnings() {
     const battingTeam = matchData.team1.isBatting ? matchData.team1 : matchData.team2;
     const bowlingTeam = matchData.team1.isBatting ? matchData.team2 : matchData.team1;
     
+    console.log(`Ending innings: Innings ${currentInnings}, ${battingTeam.name}: ${battingTeam.score}/${battingTeam.wickets}`); // Debug log
+    
     if (currentInnings === 1) {
         // Set target for second innings - FIXED: Target is battingTeam.score + 1
         matchData.target = battingTeam.score + 1;
+        
+        console.log(`Target set: ${matchData.target}`); // Debug log
         
         // Show innings ended interface
         showInningsEndInterface(
@@ -1524,7 +1529,7 @@ function manualEndInnings() {
     
     if (currentInnings === 1) {
         if (confirm(`Are you sure you want to end ${battingTeam.name}'s innings? They have scored ${battingTeam.score}/${battingTeam.wickets}`)) {
-            // Set target for second innings
+            // Set target for second innings - FIXED: Target is battingTeam.score + 1
             matchData.target = battingTeam.score + 1;
             
             // Show innings ended interface (same as automatic end)
@@ -1559,8 +1564,14 @@ function manualEndInnings() {
             }, 3000);
         }
     } else {
-        if (confirm(`Are you sure you want to end the match? ${battingTeam.name} needs ${matchData.target - battingTeam.score} more runs to win.`)) {
-            // Team batting second declares or match ends
+        // In second innings - ONLY allow manual end if team cannot reach target (declaration/forfeit)
+        if (battingTeam.score >= matchData.target) {
+            alert(`${battingTeam.name} has already reached the target! The match is completed.`);
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to declare innings? ${battingTeam.name} has scored ${battingTeam.score}/${battingTeam.wickets} and needs ${matchData.target - battingTeam.score} more runs to win. This will result in ${bowlingTeam.name} winning.`)) {
+            // Team batting second declares - first innings team wins
             const firstInningsTeam = matchData.team1.isBatting ? matchData.team2 : matchData.team1;
             matchData.winningTeam = firstInningsTeam.name;
             const margin = matchData.target - battingTeam.score - 1;
@@ -1578,6 +1589,61 @@ function manualEndInnings() {
             });
         }
     }
+}
+
+// Debug function to check match state
+function debugMatchState() {
+    console.log('=== MATCH DEBUG INFO ===');
+    console.log('Current Innings:', matchData.currentInnings);
+    console.log('Team1:', matchData.team1.name, 'Score:', matchData.team1.score, 'Wickets:', matchData.team1.wickets, 'Batting:', matchData.team1.isBatting);
+    console.log('Team2:', matchData.team2.name, 'Score:', matchData.team2.score, 'Wickets:', matchData.team2.wickets, 'Batting:', matchData.team2.isBatting);
+    console.log('Target:', matchData.target);
+    console.log('Match Completed:', matchData.matchCompleted);
+    console.log('=======================');
+}
+
+// NEW FUNCTION: Show innings ended interface similar to toss/batsman selection
+function showInningsEndInterface(title, score, message) {
+    const currentInnings = matchData.currentInnings;
+    const battingTeam = matchData.team1.isBatting ? matchData.team1 : matchData.team2;
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'innings-end-overlay';
+    overlay.innerHTML = `
+        <div class="innings-end-modal">
+            <div class="modal-header">
+                <h2>${title}</h2>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 30px;">
+                <div class="score-summary" style="background: rgba(0,0,0,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--primary); margin-bottom: 10px;">
+                        ${score}
+                    </div>
+                    <div style="font-size: 1.2rem; color: #333;">
+                        ${message}
+                    </div>
+                </div>
+                <div class="innings-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.9rem; color: #666;">Overs</div>
+                        <div style="font-size: 1.3rem; font-weight: bold;">${Math.floor(battingTeam.overs)}.${battingTeam.balls}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.9rem; color: #666;">Run Rate</div>
+                        <div style="font-size: 1.3rem; font-weight: bold;">
+                            ${(battingTeam.score / (battingTeam.overs + battingTeam.balls / 6)).toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions" style="justify-content: center; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="this.closest('.innings-end-overlay').remove(); debugMatchState();" style="padding: 12px 30px;">
+                        Continue to Next Innings
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
 }
 
 // Show target display after first innings

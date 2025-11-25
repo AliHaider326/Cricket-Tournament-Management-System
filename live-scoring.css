@@ -25,6 +25,8 @@ body {
     background: linear-gradient(135deg, #ccffcc 0%, #6bff6b 100%);
     color: var(--dark);
     min-height: 100vh;
+    background-image: url("https://img.lovepik.com/photo/48041/5338.jpg_wh860.jpg");
+    background-size: cover;
 }
 
 .container {
@@ -54,6 +56,13 @@ body {
     font-weight: bold;
     display: flex;
     align-items: center;
+    margin-right: 300px;
+}
+
+.nav-brand img {
+    width: 120px;
+    height: 118px;
+    margin-right: 20px;
 }
 
 .nav-menu {

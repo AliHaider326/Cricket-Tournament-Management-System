@@ -1,4 +1,3 @@
--- Complete CTMS Database Schema
 CREATE DATABASE IF NOT EXISTS ctms_complete;
 USE ctms_complete;
 
@@ -113,17 +112,44 @@ CREATE TABLE IF NOT EXISTS Matches (
 -- 8. Match Statistics Table
 CREATE TABLE IF NOT EXISTS Match_Statistics (
     match_stat_id INT PRIMARY KEY AUTO_INCREMENT,
-    match_id INT,
-    player_id INT,
+    match_id INT NOT NULL,
+    player_id INT NOT NULL,
+    innings_number INT NOT NULL DEFAULT 1,
+    
+    -- Batting Statistics
     runs_scored INT DEFAULT 0,
     balls_faced INT DEFAULT 0,
+    fours INT DEFAULT 0,
+    sixes INT DEFAULT 0,
+    strike_rate DECIMAL(6,2) DEFAULT 0.00,
+    batting_position INT DEFAULT 0,
+    is_out BOOLEAN DEFAULT FALSE,
+    dismissal_type ENUM('bowled', 'catch', 'lbw', 'runout', 'stumped', 'not_out', 'retired') DEFAULT 'not_out',
+    fielder_id INT NULL,
+    
+    -- Bowling Statistics
     wickets_taken INT DEFAULT 0,
     overs_bowled DECIMAL(4,1) DEFAULT 0,
+    maidens INT DEFAULT 0,
     runs_conceded INT DEFAULT 0,
+    wides INT DEFAULT 0,
+    no_balls INT DEFAULT 0,
+    economy_rate DECIMAL(6,2) DEFAULT 0.00,
+    bowling_position INT DEFAULT 0,
+    dot_balls INT DEFAULT 0,
+    
+    -- Fielding Statistics
     catches INT DEFAULT 0,
     stumpings INT DEFAULT 0,
+    run_outs INT DEFAULT 0,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
     FOREIGN KEY (match_id) REFERENCES Matches(match_id) ON DELETE CASCADE,
-    FOREIGN KEY (player_id) REFERENCES Players(player_id) ON DELETE CASCADE
+    FOREIGN KEY (player_id) REFERENCES Players(player_id) ON DELETE CASCADE,
+    FOREIGN KEY (fielder_id) REFERENCES Players(player_id),
+    
+    UNIQUE KEY unique_match_player_innings (match_id, player_id, innings_number)
 );
 
 -- 9. Points Table
@@ -286,3 +312,4 @@ CREATE TABLE IF NOT EXISTS BowlingScorecard (
     FOREIGN KEY (match_id) REFERENCES Matches(match_id),
     FOREIGN KEY (player_id) REFERENCES Players(player_id)
 );
+SELECT * FROM MATCH_STATISTICS;
