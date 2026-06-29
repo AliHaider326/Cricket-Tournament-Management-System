@@ -190,7 +190,103 @@ API Examples:
 
 # 📂 Project Structure
 
-
+db_backup/
+│
+├── README.md
+│
+├── backend/
+│   ├── .env
+│   ├── auth.js
+│   ├── server.js
+│   ├── package.json
+│   ├── package-lock.json
+│   │
+│   └── node_modules/
+│       └── (all installed npm dependencies)
+│
+├── database/
+│   └── complete_database_schema.sql
+│
+├── frontend/
+│   ├── dashboard.html
+│   ├── dashboard.css
+│   ├── dashboard.js
+│   │
+│   ├── hash.js
+│   │
+│   ├── index.html
+│   ├── index.css
+│   ├── index.js
+│   │
+│   ├── live-scoring.html
+│   ├── live-scoring.css
+│   ├── live-scoring.js
+│   │
+│   ├── login.html
+│   ├── login.css
+│   ├── login.js
+│   │
+│   ├── matches.html
+│   ├── matches.css
+│   ├── matches.js
+│   │
+│   ├── register.html
+│   ├── register.css
+│   ├── register.js
+│   │
+│   ├── statistics.html
+│   ├── statistics.css
+│   ├── statistics.js
+│   │
+│   ├── teams.html
+│   ├── teams.css
+│   ├── teams.js
+│   │
+│   ├── tournaments.html
+│   ├── tournaments.css
+│   └── tournaments.js
+│
+├── images/
+│   ├── Ctms.png
+│   ├── dashboard1.png
+│   ├── dashboard2.png
+│   ├── dashboard3.png
+│   ├── dashboard4.png
+│   ├── dashboard5.png
+│   ├── dashboard6.png
+│   ├── dashboard8.png
+│   ├── dashboard9.png
+│   ├── image.png
+│   ├── live-scoring-logo.png
+│   ├── Live.png
+│   ├── login.png
+│   ├── matches-logo3.png
+│   ├── Pointstable.png
+│   ├── stats1.png
+│   ├── stats2.png
+│   ├── stats3.png
+│   ├── stats4.png
+│   ├── Teammanagement.png
+│   ├── tournament-logo2.png
+│   ├── Tournament.png
+│   ├── tournaments1.png
+│   ├── tournaments2.png
+│   └── tournaments3.png
+│
+├── Ctms.png
+├── dashboard1.png
+├── dashboard2.png
+├── dashboard3.png
+├── dashboard4.png
+├── dashboard5.png
+├── dashboard6.png
+├── dashboard8.png
+├── dashboard9.png
+├── image.png
+├── live-scoring-logo.png
+├── Live.png
+├── login.png
+└── matches-logo3.png
 
 # 🗄️ Database Modules
 
