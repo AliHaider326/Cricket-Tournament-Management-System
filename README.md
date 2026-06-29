@@ -190,6 +190,7 @@ API Examples:
 
 # 📂 Project Structure
 
+```text
 db_backup/
 │
 ├── README.md
@@ -287,6 +288,7 @@ db_backup/
 ├── Live.png
 ├── login.png
 └── matches-logo3.png
+```
 
 # 🗄️ Database Modules
 
